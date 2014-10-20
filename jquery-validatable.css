@@ -1,0 +1,61 @@
+/* hide status icons and status messages by default */
+
+form.validatable div.form-group.validatable i.has-success.validatable,
+form.validatable div.form-group.validatable i.has-error.validatable,
+form.validatable div.form-group.validatable span.help-block.has-success.validatable,
+form.validatable div.form-group.validatable span.help-block.has-error.validatable
+{
+	display: none;
+}
+
+/* show appropriate status icon */
+
+form.validatable div.form-group.has-success.validatable i.has-success.validatable
+{
+	display: inline;
+}
+
+form.validatable div.form-group.has-error.validatable i.has-error.validatable
+{
+	display: inline;
+}
+
+/* hide default help message on success */
+
+form.validatable div.form-group.has-success.validatable span.help-block.help-block.validatable
+{
+	display: none;
+}
+
+/* show appropriate status message */
+
+form.validatable div.form-group.has-success.validatable span.help-block.has-success.validatable
+{
+	display: block;
+}
+
+form.validatable div.form-group.has-error.validatable span.help-block.has-error.validatable
+{
+	display: block;
+}
+
+/***/
+
+form.validatable div.select-inline
+{
+	display: inline-block;
+	vertical-align: middle;
+}
+
+form.validatable input.validatable-datepicker
+{
+	cursor: pointer;
+}
+
+@media (min-width:992px)
+{
+	form.form-default.validatable div.form-group.checkbox.validatable
+	{
+		padding-top: 25px;
+	}
+}
