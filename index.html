@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>jQuery Validatable</title>
+
+	<link rel="stylesheet" href="../../Sandbox/p/vendor/bootstrap/css/bootstrap.min.css">
+	<link rel="stylesheet" href="../../Sandbox/p/vendor/jquery-ui/jquery-ui.min.css">
+
+	<link rel="stylesheet" href="bootstrap-validatable.css">
+	<style>
+		span[data-toggle="tooltip"] {
+			cursor: help;
+		}
+
+		span.label {
+			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif !important;
+		}
+
+		pre b {
+			font-weight: bolder;
+			color: navy;
+		}
+		pre i {
+			font-weight: bold;
+			color: maroon;
+		}
+
+		div.panel, div.panel-heading, div.panel-body {
+			border-color: transparent;
+		}
+		div.panel-default > div.panel-heading {
+			padding: 0;
+			background-color: transparent;
+			border-width: 0;
+			font-size: 30px;
+			font-weight: 500;
+			line-height: 1.1;
+			margin-bottom: 0;
+			margin-top: 10px;
+		}
+		div.panel-default > div.panel-body > div.panel > div.panel-heading {
+			font-size: 24px;
+		}
+		div.panel-default > div.panel-body > div.panel > div.panel-body > div.panel > div.panel-heading {
+			font-size: 18px;
+		}
+		div.panel-body {
+			padding: 15px 0 0 30px;
+			border-width: 0;
+		}
+
+	</style>
+</head>
+<body>
+<div class="container">
+
+<div class="page-header">
+	<h1>jQuery Validatable <small>v0.3.2</small></h1>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-heading">Form structure</div>
+	<div class="panel-body">
+
+<pre>&lt;form class="form-default validatable" id="form1"&gt; <span class="label label-default">form containing one or more groups</span>
+	&lt;div class="form-group validatable" id="group1"&gt; <span class="label label-default">group containing one or more fields</span>
+		&lt;label class="control-label" for="text1"&gt;
+			Text 1
+			&lt;i class="glyphicon glyphicon-ok has-success validatable"&gt;&lt;/i&gt;
+			&lt;i class="glyphicon glyphicon-remove has-error validatable"&gt;&lt;/i&gt;
+		&lt;/label&gt;
+		&lt;input type="text" class="form-control validatable" name="text1" id="text1"&gt; <span class="label label-default">field</span>
+		&lt;span class="help-block validatable"&gt;Default help text.&lt;/span&gt;
+		&lt;span class="help-block has-success validatable"&gt;Field valid.&lt;/span&gt;
+		&lt;span class="help-block has-error validatable"&gt;Field invalid.&lt;/span&gt;
+	&lt;/div&gt;
+&lt;/form&gt;</pre>
+
+		<div class="panel panel-default">
+			<div class="panel-heading">Form</div>
+			<div class="panel-body">
+				<ul>
+					<li>tag: <code>form</code></li>
+					<li>class attribute: <code>validatable</code></li>
+					<li>attribute: <code>id</code></li>
+				</ul>
+				<pre>&lt;<b>form</b> class="form-default <b>validatable</b>" <b>id</b>="form1"&gt;</pre>
+			</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">Group</div>
+			<div class="panel-body">
+				<ul>
+					<li>tag: <code>div</code></li>
+					<li>class attributes: <code>form-group validatable</code></li>
+					<li>attribute: <code>id</code></li>
+				</ul>
+				<pre>&lt;<b>div</b> class="<b>form-group validatable</b>" <b>id</b>="group1"&gt;</pre>
+			</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">Label status icons</div>
+			<div class="panel-body">
+				<ul>
+					<li>tag: <code>i</code></li>
+					<li>valid class attribute: <code>has-success validatable</code></li>
+					<li>invalid class attribute: <code>has-error validatable</code></li>
+				</ul>
+<pre>&lt;label class="control-label" for="text1"&gt;
+	Label
+	&lt;<b>i</b> class="glyphicon glyphicon-ok <b>has-success validatable</b>"&gt;&lt;/i&gt;
+	&lt;<b>i</b> class="glyphicon glyphicon-remove <b>has-error validatable</b>"&gt;&lt;/i&gt;
+&lt;/label&gt;</pre>
+			</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">Field</div>
+			<div class="panel-body">
+				<ul>
+					<li>tag: <code>input</code>, <code>select</code>, <code>textarea</code></li>
+					<li>type attribute <code>text</code>, <code>checkbox</code>, <code>radio</code>, <code>hidden</code></li>
+					<li>class attribute: <code>validatable</code></li>
+					<li>attribute: <code>id</code></li>
+				</ul>
+
+				<pre>&lt;<b>input type="text"</b> class="form-control <b>validatable</b>" name="text1" <b>id</b>="text1"&gt;</pre>
+				<pre>&lt;<b>select</b> class="form-control <b>validatable</b>" name="select1" <b>id</b>="select1"&gt;</pre>
+
+				<div class="panel panel-default">
+					<div class="panel-heading">Datepicker</div>
+					<div class="panel-body">
+<pre>&lt;div class="input-group"&gt;
+	&lt;input type="hidden" class="validatable" id="datepicker1" name="datepicker1" <b>data-preview</b>="<i>datepicker1_preview</i>"&gt;
+	&lt;span class="input-group-addon"&gt;&lt;i class="glyphicon glyphicon-calendar"&gt;&lt;/i&gt;&lt;/span&gt;
+	&lt;input type="text" class="form-control <b>validatable-datepicker</b>" <b>id</b>="<i>datepicker1_preview</i>" readonly&gt;
+&lt;/div&gt;</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">Help block</div>
+			<div class="panel-body">
+				<ul>
+					<li>tag: <code>span</code></li>
+					<li>neutral class attributes: <code>help-block validatable</code></li>
+					<li>valid class attributes: <code>help-block has-success validatable</code></li>
+					<li>invalid class attributes: <code>help-block has-error validatable</code></li>
+				</ul>
+<pre>&lt;<b>span</b> class="<b>help-block validatable</b>"&gt;Default help text.&lt;/span&gt;
+&lt;<b>span</b> class="<b>help-block has-success validatable</b>"&gt;Field valid.&lt;/span&gt;
+&lt;<b>span</b> class="<b>help-block has-error validatable</b>"&gt;Field invalid.&lt;/span&gt;</pre>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+<div class="panel panel-default">
+<div class="panel-heading">Validator</div>
+<div class="panel-body">
+
+<pre>$('#form1').validatable();</pre>
+<pre>$('#form1').validatable(
+	{ <span class="label label-default">global options</span>
+		bind: {
+			change: false, <span class="label label-default">ignore onchange event</span>
+			blur: true
+		},
+		className: {
+			valid: 'has-success', <span class="label label-default">class applied to a valid form-group</span>
+			invalid: 'has-error' <span class="label label-default">class applied to an invalid form-group</span>
+		}
+	},
+	{ <span class="label label-default">element options (keys match form, group or element id attribute)</span>
+		form1: {
+			observe: function(type, form, event){ <span class="label label-default">form event observer</span>
+				if ('form.submit' == type) {
+					alert("Form #"+form.id+" cannot be submitted.");
+					return false; <span class="label label-default">returning "false" stops event propagation</span>
+				}
+				return true;
+			}
+		},
+		group1: {
+			debug: true <span class="label label-default">enables console.debug logging for this group and its elements</span>
+		},
+		text1: {
+			required: false, <span class="label label-default">field is optional</span>
+			rules: {
+				regex: /^07[0-9]{8,9}$/ <span class="label label-default">field must match the regular expression to be valid</span>
+			}
+		},
+		select1: {
+			validate: function(field){ <span class="label label-default">replaces build-in validation</span>
+				return field.val() == 'option1'; <span class="label label-default">can return true (valid), false (invalid) or undefined (neutral)</span>
+			}
+		},
+		datepicker1: {
+			datepicker: { <span class="label label-default">options passed to jQuery-UI datepicker</span>
+				altFormat: 'yy-mm-dd',
+				dateFormat: 'dd/mm/yy'
+			}
+		},
+		group4: { <span class="label label-default">group must contain at least one, but no more than 3 valid fields</span>
+			rules: {
+				min: 1,
+				max: 3
+			}
+		}
+	}
+);</pre>
+
+<div class="panel panel-default">
+	<div class="panel-heading">Options</div>
+	<div class="panel-body">
+		<p class="alert alert-warning">Global options are merged into form, group and field options.</p>
+		<p>Options can be set globally (as a property of the first parameter of <code>validatable</code>) or attached to a group/field.</p>
+		<table class="table table-condensed">
+			<thead>
+			<tr>
+				<th>option</th>
+				<th>allowed elements</th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr>
+				<td><code>debug</code></td>
+				<td>enables console.debug messages for element and its children</td>
+			</tr>
+			<tr>
+				<td><code>required</code></td>
+				<td>group must contain at least one valid field<br>field must be valid</td>
+			</tr>
+			<tr>
+				<td><code>bind.change</code></td>
+				<td>enables <code>onchange</code> event propagation, including group validation</td>
+			</tr>
+			<tr>
+				<td><code>bind.blur</code></td>
+				<td>enables <code>onblur</code> event propagation, including group validation</td>
+			</tr>
+			<tr>
+				<td><code>bind.keydown</code></td>
+				<td>enables <code>onkeydown</code> event propagation</td>
+			</tr>
+			<tr>
+				<td><code>bind.submit</code></td>
+				<td>enables <code>onsubmit</code> event propagation, including form validation</td>
+			</tr>
+			<tr>
+				<td><code>className.valid</code></td>
+				<td>class applied to <code>form-group</code> div on successful group validation (default: <code>has-success</code>)</td>
+			</tr>
+			<tr>
+				<td><code>className.invalid</code></td>
+				<td>class applied to <code>form-group</code> div on failed group validation (default: <code>has-error</code>)</td>
+			</tr>
+			<tr>
+				<td><code>observe</code></td>
+				<td>attaches observer to element</td>
+			</tr>
+			<tr>
+				<td><code>validate</code></td>
+				<td>attaches validator to element</td>
+			</tr>
+			<tr>
+				<td><code>rules.val</code></td>
+				<td>required field value</td>
+			</tr>
+			<tr>
+				<td><code>rules.regex</code></td>
+				<td>required field regular expression value</td>
+			</tr>
+			<tr>
+				<td><code>rules.min</code></td>
+				<td>required minimal number of valid fields within group</td>
+			</tr>
+			<tr>
+				<td><code>rules.min</code></td>
+				<td>required maximum number of valid fields within group</td>
+			</tr>
+			<tr>
+				<td><code>datepicker.*</code></td>
+				<td>options passed to <code>jQuery-UI Datepicker</code></td>
+			</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-heading">Event types</div>
+	<div class="panel-body">
+		<table class="table table-condensed">
+			<thead>
+			<tr>
+				<th>type</th>
+				<th>object</th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr><td><code>form.ready</code></td><td>Form</td><td>on form successful creation</td></tr>
+			<tr><td><code>form.submit</code></td><td>Form</td><td>on form submit, before any validation</td></tr>
+			<tr><td><code>form.valid</code></td><td>Form</td><td>on successful form validation</td></tr>
+			<tr><td><code>form.invalid</code></td><td>Form</td><td>on failed form validation</td></tr>
+			<tr><td><code>group.ready</code></td><td>Group</td><td></td></tr>
+			<tr><td><code>group.valid</code></td><td>Group</td><td></td></tr>
+			<tr><td><code>group.invalid</code></td><td>Group</td><td></td></tr>
+			<tr><td><code>group.neutral</code></td><td>Group</td><td></td></tr>
+			<tr><td><code>field.ready</code></td><td>Field</td><td></td></tr>
+			<tr><td><code>field.valid</code></td><td>Field</td><td></td></tr>
+			<tr><td><code>field.invalid</code></td><td>Field</td><td></td></tr>
+			<tr><td><code>field.neutral</code></td><td>Field</td><td></td></tr>
+			<tr><td><code>field.change</code></td><td>Field</td><td></td></tr>
+			<tr><td><code>field.blur</code></td><td>Field</td><td></td></tr>
+			<tr><td><code>field.keydown</code></td><td>Field</td><td></td></tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-heading">Observers</div>
+	<div class="panel-body">
+		<p class="alert alert-warning">The event propagation is stopped if the observer returns strict <code>false</code>.</p>
+		<p>An observer must be attached via <code>observe</code> option and accept three parameters:</p>
+		<ul>
+			<li><code>type</code> - event type (<code>string</code>)</li>
+			<li><code>obj</code> - either <code>Form</code>, <code>Group</code> or <code>Field</code> object</li>
+			<li><code>event</code> - <code>Event</code> object (for default browser event)</li>
+		</ul>
+<pre>$('#form1').validatable({}, {
+	text1: {
+		observe: function(type, field, event){
+		}
+	}
+});</pre>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-heading">Validators</div>
+	<div class="panel-body">
+		<p class="alert alert-warning">Custom validators take precedence over build-in validation and any custom rules.</p>
+		<p>A validator can be attached via <code>validate</code> option and accept one parameter:</p>
+		<ul>
+			<li><code>obj</code> - either <code>Form</code>, <code>Group</code> or <code>Field</code> object</li>
+		</ul>
+		<p>A validator can return one of the following values:</p>
+		<ul>
+			<li>strict <code>true</code> - the element is valid</li>
+			<li>strict <code>false</code> - the element is invalid</li>
+			<li>strict <code>undefined</code> - the element is either empty but optional, has not been validated or its state is unknown</li>
+		</ul>
+<pre>$('#form1').validatable({}, {
+	text1: {
+		validate: function(field){
+			var value = field.val();
+			return (value >= 1 && value <= 3);
+		}
+	}
+});</pre>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-heading">Rules</div>
+	<div class="panel-body">
+		<p class="alert alert-warning">Custom rules take precedence over build-in validation.</p>
+		<p>Predefined validation rules can be attached to a group or field via <code>rules</code> option.</p>
+		<p>If there is more than one rule attached to an element, all of them must be fulfilled for the element to be considered valid.</p>
+
+		<table class="table table-condensed">
+			<thead>
+			<tr>
+				<th>element</th>
+				<th>rule name</th>
+				<th>value type</th>
+				<th>description</th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr><td>group</td><td><code>min</code></td><td><code>int</code></td><td>minimum number of valid fields (for instance selected checkboxes)</td></tr>
+			<tr><td>group</td><td><code>max</code></td><td><code>int</code></td><td>maximum number of valid fields (for instance selected checkboxes)</td></tr>
+			<tr><td>field</td><td><code>val</code></td><td><code>int</code></td><td>required field value</td></tr>
+			<tr><td>field</td><td><code>regex</code></td><td><code>Regex</code></td><td>field value must match the provided regular expression</td></tr>
+			</tbody>
+		</table>
+<pre>$('#form1').validatable({}, {
+	group1: {
+		rules: {
+			min: 1,
+			max: 3
+		}
+	}
+});</pre>
+<pre>$('#form1').validatable({}, {
+	text1: {
+		rules: {
+			regex: /^0[0-9]{9,10}$/
+		}
+	}
+});</pre>
+
+	</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<!--[if lt IE 9]>
+<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+<![endif]-->
+<script src="../../Sandbox/p/vendor/jquery/jquery-1.11.1.min.js"></script>
+<script src="../../Sandbox/p/vendor/bootstrap/js/bootstrap.min.js"></script>
+<script src="../../Sandbox/p/vendor/jquery-ui/jquery-ui.min.js"></script>
+<script src="jquery-validatable.js"></script>
+<script>$(function(){
+
+	$('span[data-toggle="tooltip"]').tooltip()
+
+})</script>
+
+</body>
+</html>
