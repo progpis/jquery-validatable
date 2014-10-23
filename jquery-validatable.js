@@ -1,246 +1,241 @@
 (function($, window) {
 
-	var VERSION = '0.3.2';
+	var VERSION = '0.3.6';
 
-	var defaultOptions = {
-		debug: false,
-		required: true,
-		bind: {
-			change  : true,
-			blur    : true,
-			keydown : false,
-			submit  : true
-		},
+	$.fn.validatable = function(opts, els){
+		options = $.extend(true, {}, defaults, opts || {});
+		elements = els || {};
+		return this.each(function(){ new Form($(this)); });
+	};
+
+	// default options, applied to forms, groups and fields
+	var defaults = {
+
+		// class names applied to group-validatable on success and fail
 		className: {
-			valid: 'has-success',
-			invalid: 'has-error'
+			valid      : 'has-success',
+			invalid    : 'has-error'
 		},
-		observe: undefined,
-		validate: undefined,
+
+		// trigger group validation on field events
+		validateOn: {
+			change     : true,
+			blur       : true,
+			submit     : true
+		},
+
+		required       : true, // field is required
+
+		// group/field validation rules
 		rules: {
-			val: undefined,
-			regex: undefined,
-			min: undefined,
-			max: undefined
+			value      : null, // field value must match
+			regex      : null, // field value must match regular expression
+			min        : null, // field: value must be equal or greater, group: number of valid fields must be equal or greater
+			max        : null  // field: value must be equal or lower, group: number of valid fields must be equal or lower
 		},
-		datepicker: {
-			dateFormat: undefined,
-			altFormat: undefined
+
+		// custom validator
+		validate       : null,
+
+		// event types
+		on: {
+			ready      : null, // triggered when form/group/field has finished initiation
+			submit     : null, // triggered on form submit
+			change     : null, // triggered on field change
+			valid      : null, // triggered when group/field has been successfully validated
+			invalid    : null, // triggered when group/field has been unsuccessfully validated
+			neutral    : null // triggered when group/field has been neutrally validated
+		}
+
+	};
+
+	// form/group/field options merged with defaults
+	var options;
+
+	// element options indexed by element id
+	var elements;
+
+	//
+	// helper library
+	//
+
+	var helper = {
+		scrollToFirstInvalidGroup: function(animTime, offsetY){
+			var time, top, $group;
+			time = time || 200;
+			top = offsetY || 30;
+			$group = helper.form.$e.find('div.'+helper.form.options.className.invalid+'.group-validatable:first');
+			$group.length && $('html, body').animate({ scrollTop: ($group.offset().top - top)}, time);
+			return helper;
+		},
+		focusFirstInvalidField: function(){
+			var $group, $field;
+			$group = helper.form.$e.find('div.'+helper.form.options.className.invalid+'.group-validatable:first');
+			$field = $group.find('.field-validatable:first');
+			$field.length && $field.focus();
+			return helper;
 		}
 	};
-	var Options;
-	var Elements;
 
-	$.fn.validatable = function(options, elements){
-		Options = $.extend(true, {}, defaultOptions, options || {});
-		Elements   = elements || {};
-		return this.each(function(){
-			new Form($(this));
-		});
-	};
+	//
+	// validator library
+	//
 
-	// Observable ------------------------------------------------------------------------------------------------------
+	var validator = {
 
-	var Observable = function(){};
+		validate: function(validator){
+			var valid, rule, val;
 
-	Observable.prototype.register = function(observer){
-		if (!this.observers) this.observers = [];
-		this.options.debug && console.debug(this.id, 'Observable.register', observer);
-		this.observers.push(observer);
-	};
+			if (!this.options.required && validator.empty.call(this)) {
+				return null;
+			}
 
-	Observable.prototype.trigger = function(type, event){
-		this.options.debug && console.debug(this.id, 'Observable.trigger', type, event);
-		if (!this.observers) return true;
-		for(var i in this.observers) {
-			if (!this.observers.hasOwnProperty(i)) continue;
-			var cont = this.observers[i](type, this, event);
-			this.options.debug && console.debug(this.id, 'Observable.trigger', 'observer', this.observers[i], cont);
-			if (cont === false) {
+			// use custom validator if available
+			if ('function' === typeof this.options.validate) {
+				return this.options.validate.call(this);
+			}
+
+			valid = validator.valid.call(this);
+			if (false === valid) {
 				return false;
 			}
-		}
-		return true;
-	};
 
-	// Validator -------------------------------------------------------------------------------------------------------
-
-	var Validator = {
-
-		validate: function(){
-			this.options.debug && console.debug(this.id, 'Validator.validate');
-			return undefined;
-		},
-
-		rules: function(){
-			this.options.debug && console.debug(this.id, 'Validator.rules');
-			if (!this.options || !this.options.rules || !this.val) return undefined;
-			var value = this.val();
-			for(var key in this.options.rules) {
-				if (!this.options.rules.hasOwnProperty(key)) continue;
-				var val = this.options.rules[key];
-				var isValid = undefined;
-				this.validator[key] && (isValid = this.validator[key].call(this, val));
-				this.options.debug && console.debug(this.id, 'Validator.rules', key, val, isValid);
-				if (false === isValid) return false;
+			// validates form/group/field value against available rules
+			if ('object' !== typeof this.options.rules) return null;
+			for(rule in this.options.rules) {
+				if (!this.options.rules.hasOwnProperty(rule)) continue;
+				val = this.options.rules[rule];
+				if (null === val) continue;
+				validator[rule] && 'function' === typeof validator[rule] && (valid = validator[rule].call(this, val));
+				if (false === valid) return false;
 			}
-			return true;
-		}
+			return valid;
+		},
 
+		field: {
+
+			valid: function(){
+				return !this.empty();
+			},
+			empty: function(){
+				return this.empty();
+			},
+			equals: function(val){
+				return this.val() == val;
+			},
+			regex: function(val){
+				return val.test(this.val());
+			},
+			min: function(val){
+				return this.val() >= val;
+			},
+			max: function(val){
+				return this.val() <= val;
+			}
+
+		},
+		group: {
+
+			empty: function(){
+				return false;
+			},
+
+			valid: function(){
+				var required, count, id, valid;
+				required = this.options.required;
+				count = {t: 0, f: 0, u: 0};
+				for(id in this.fields) {
+					if (!this.fields.hasOwnProperty(id)) continue;
+					valid = this.fields[id].validate();
+					switch(true){
+						case false === valid : count['f']++; break;
+						case  true === valid : count['t']++; break;
+						default              : count['u']++; break;
+					}
+				}
+				return count['f'] > 0 ? (true === required ? false : null) : (count['t'] > 0 ? true : null);
+			},
+
+			// valid if at least one field has required value, invalid otherwise
+			equals: function(val){
+				var id;
+				for(id in this.fields) {
+					if (!this.fields.hasOwnProperty(id)) continue;
+					if (this.fields[id].val() == val) return true;
+				}
+				return false;
+			},
+
+			// valid if number of valid fields is at least 'val'
+			min: function(val){
+				return this.count() >= val;
+			},
+
+			// valid if number of valid fields is at most 'val'
+			max: function(val){
+				return this.count() <= val;
+			}
+
+		},
+		form: {
+
+			empty: function(){
+				return false;
+			},
+
+			valid: function(){
+				var id, valid, groupValid;
+				valid = null;
+				for(id in this.groups) {
+					if (!this.groups.hasOwnProperty(id)) continue;
+					groupValid = this.groups[id].validate();
+					switch(true){
+						case true  === groupValid : valid = valid === false ? false : true; break;
+						case false === groupValid : valid = false;                          break;
+					}
+				}
+				return valid;
+			}
+
+		}
 	};
 
-	// FieldValidator --------------------------------------------------------------------------------------------------
+	//
+	// validatable library
+	//
 
-	var FieldValidator = $.extend(true, {}, Validator, {
+	var validatable = {
 
-		validate: function(){
-			this.options.debug && console.debug(this.id, 'FieldValidator.validate', this.options.required);
-			return this.isEmpty() ? (this.options.required ? false : undefined) : true;
-		},
-
-		val: function(val){
-			this.options.debug && console.debug(this.id, 'FieldValidator.val', this.val(), val);
-			return this.val() == val;
-		},
-
-		regex: function(regex){
-			this.options.debug && console.debug(this.id, 'FieldValidator.regex', this.val(), regex);
-			return regex.test(this.val());
-		}
-
-	});
-
-	// GroupValidator --------------------------------------------------------------------------------------------------
-
-	var GroupValidator = $.extend(true, {}, Validator, {
-
-		validate: function(){
-			this.options.debug && console.debug(this.id, 'GroupValidator.validate');
-			var count = {t: 0, f: 0, u: 0};
-			for(var id in this.children) {
-				if (!this.children.hasOwnProperty(id)) continue;
-				var fieldValid = this.children[id].validate();
-				this.options.debug && console.debug(this.id, 'GroupValidator.validate', id, fieldValid);
-				switch(true){
-					case false === fieldValid : count['f']++; break;
-					case  true === fieldValid : count['t']++; break;
-					default                   : count['u']++; break;
+		// object constructor
+		init: function($e, vars){
+			var i;
+			if (vars && 'object' === typeof vars) {
+				for(i in vars) {
+					if (!vars.hasOwnProperty(i)) continue;
+					this[i] = vars[i];
 				}
 			}
-			this.options.debug && console.debug(this.id, 'GroupValidator.validate', count);
-			return count['f'] > 0 ? false : (count['t'] > 0 ? true : undefined);
+			this.id = $e.attr('id');
+			this.$e = $e;
+			this.options = $.extend(true, {}, options, elements[this.id] || {});
 		},
 
-		val: function(val){
-			this.options.debug && console.debug(this.id, 'GroupValidator.val', val);
-			for(var id in this.children) {
-				if (!this.children.hasOwnProperty(id)) continue;
-				if (this.children[id].val() == val) return true;
-			}
-			return false;
+		// creates children identified by 'locator' query using 'constructor' function
+		children: function(locator, constructor){
+			var children, child;
+			children = {};
+			this.$e.find(locator).each(function(){
+				child = constructor($(this));
+				children[child.id] = child;
+			});
+			return children;
 		},
 
-		min: function(min){
-			this.options.debug && console.debug(this.id, 'GroupValidator.min', min);
-			return this.countValid() >= min;
-		},
-
-		max: function(max){
-			this.options.debug && console.debug(this.id, 'GroupValidator.max', max);
-			return this.countValid() <= max;
-		}
-
-	});
-
-	// FormValidator ---------------------------------------------------------------------------------------------------
-
-	var FormValidator = $.extend(true, {}, Validator, {
-
-		validate: function(){
-			this.options.debug && console.debug(this.id, 'FormValidator.validate');
-			var isValid = true;
-			for(var id in this.children) {
-				if (!this.children.hasOwnProperty(id)) continue;
-				var groupValid = this.children[id].validate();
-				this.options.debug && console.debug(this.id, 'FormValidator.validate', id, groupValid);
-				if (groupValid === false) {
-					isValid = false;
-				}
-			}
-			return isValid;
-		}
-
-	});
-
-	// Validatable -----------------------------------------------------------------------------------------------------
-
-	var Validatable = function(){};
-
-	Validatable.prototype._construct = function($element, parent) {
-		this.id = $element.attr('id');
-		this.$element = $element;
-		this.parent = parent;
-		this.options = $.extend(true, {}, Options, Elements[this.id] || {});
-		if (this.options.observe) {
-			this.register(this.options.observe);
-		}
-	};
-
-	Validatable.prototype._children = function(selector, creator, onEvent) {
-		this.children = {};
-		var self = this;
-		this.$element.find(selector).each(function() {
-			var child = creator($(this));
-			if (onEvent) {
-				child.register(onEvent);
-			}
-			self.children[child.id] = child;
-		});
-	};
-
-	Validatable.prototype.validate = function(){
-		this.options.debug && console.debug(this.id, 'Validatable.validate', undefined !== this.options.validate, undefined !== this.options.rules);
-		var isValid = undefined;
-		switch(true) {
-			case undefined !== this.options.validate : isValid = this.options.validate(this);        break;
-			case undefined !== this.options.rules    : isValid = this.validator.rules.call(this);    break;
-			default                                  : isValid = this.validator.validate.call(this); break;
-		}
-		return isValid;
-	};
-
-	// Preview ---------------------------------------------------------------------------------------------------------
-
-	var Preview = function($element, field){
-		var self = this;
-		this._construct($element, field);
-
-		this.$element.hasClass('validatable-datepicker') && this.$element.datepicker($.extend(true, {
-			altField: '#'+self.parent.id
-		}, this.options.datepicker));
-
-		this.options.bind.change && self.$element.bind('change', function(){
-			self.trigger('preview.change');
-		});
-
-		this.options.bind.blur && self.$element.bind('blur', function(){
-			self.trigger('preview.blur');
-		});
-	}
-
-	Preview.prototype = $.extend({}, Observable.prototype, Validatable.prototype, Preview.prototype);
-
-	// Field -----------------------------------------------------------------------------------------------------------
-
-	var Field = function($field, group){
-		var self = this;
-		this._construct($field, group);
-		this.validator = FieldValidator;
-
-		this.type = (function(){
-			var type = undefined;
-			var tag  = self.$element.prop('tagName').toLowerCase();
-			var attr = self.$element.attr('type');
+		// returns element type
+		type: function(){
+			var tag, attr, type;
+			tag  = this.$e.prop('tagName').toLowerCase();
+			attr = this.$e.attr('type');
 			switch(true) {
 				case 'select'   == tag                       : type = 'select';     break;
 				case 'textarea' == tag                       : type = 'textarea';   break;
@@ -248,189 +243,201 @@
 				case 'input'    == tag && 'checkbox' == attr : type = 'checkbox';   break;
 				case 'input'    == tag && 'radio'    == attr : type = 'radio';      break;
 				case 'input'    == tag && 'hidden'   == attr : type = 'hidden';     break;
-				default                                      : throw 'Invalid field#'+self.id+' type: '+tag+'['+attr+']';
+				default                                      : type = 'unknown';    break;
 			}
 			return type;
-		})();
+		}
 
-		self.$element.data('preview') && (function(){
-			var previewId = self.$element.data('preview');
-			self.children = {};
-			var child = new Preview($('#'+previewId), self);
-			child.register(function(type, event){
-				switch(type) {
-					case 'preview.change' : self.trigger('field.change', event); break;
-					case 'preview.blur'   : self.trigger('field.blur', event);   break;
-				}
-				return false;
-			});
-			self.children[child.id] = child;
-		})();
-
-		this.options.bind.change && this.$element.bind('change', function(event){
-			self.trigger('field.change', event);
-		});
-
-		this.options.bind.blur && this.$element.bind('blur', function(event){
-			self.trigger('field.blur', event);
-		});
-
-		this.options.bind.keydown && this.$element.bind('keydown', function(event){
-			self.trigger('field.key', event);
-		});
-
-		this.trigger('field.ready');
 	};
 
+	//
+	// Validatable class
+	//
+
+	var Validatable = function(){};
+
+	// triggers event 'type'
+	Validatable.prototype.event = function(type, event){
+		var c;
+
+		// tries to call user-defined function 'on[type]'
+		c = null;
+		'object' === typeof this.options.on && this.options.on[type] && 'function' === typeof this.options.on[type]
+		&& (c = this.options.on[type].call(this, event, this));
+
+		// if user-defined function exists and didn't return strict false, tries to call class-defined function 'on[type]'
+		false !== c
+			&& this.on && 'object' === typeof this.on && this.on[type] && 'function' === typeof this.on[type]
+		&& this.on[type](event);
+
+	};
+
+	// validates form/group/field using object's validator
+	Validatable.prototype.validate = function(){
+		var valid;
+		valid = validator.validate.call(this, this.validator);
+		switch(true){
+			case  true === valid : this.event('valid');   return true;
+			case false === valid : this.event('invalid'); return false;
+			default              : this.event('neutral'); return null;
+		}
+	};
+
+	//
+	// Field class - represents form input/select/textarea
+	//
+
+	var Field = function($e, group){
+		var self = this;
+		validatable.init.call(this, $e, {group: group});
+		this.type = validatable.type.call(this);
+		this.validator = validator.field;
+		this.on = {
+			change : function(event){self.group.on.fieldChange(event, self)},
+			blur   : function(event){self.group.on.fieldBlur(event, self)}
+		};
+		this.$e.bind('change', function(event){self.event('change', event)});
+		this.$e.bind('blur',   function(event){self.event('blur',   event)});
+		this.event('ready');
+	};
+
+	// returns field value
 	Field.prototype.val = function(){
 		switch(this.type) {
-			case 'checkbox' : return this.$element.is(':checked') ? this.$element.val() : '';
-			case 'radio'    : return this.$element.is(':checked') ? this.$element.val() : '';
-			default         : return this.$element.val();
+			case 'checkbox' : return this.$e.is(':checked') ? this.$e.val() : '';
+			case 'radio'    : return this.$e.is(':checked') ? this.$e.val() : '';
+			default         : return this.$e.val();
 		}
 	};
 
-	Field.prototype.set = function(val){
-		switch(this.type) {
-			case 'text' :
-			case 'textarea' :
-				this.$element.val(val);
-				break;
-
-			case 'select' :
-				if (this.$element.find('option[value="'+val+'"]').length > 0) {
-					this.$element.val(val);
-				}
-				break;
-
-			// TODO implement for radio, checkbox
-		}
-	};
-
-	Field.prototype.isEmpty = function(){
+	// returns true if field is strictly not empty
+	Field.prototype.empty = function(){
 		return this.val() == '';
 	};
 
-	Field.prototype.validate = function() {
-		this.options.debug && console.debug(this.id, 'Field.validate');
-		var status = Validatable.prototype.validate.call(this);
-		switch(true){
-			case  true === status : this.trigger('field.valid');   return true;
-			case false === status : this.trigger('field.invalid'); return false;
-			default               : this.trigger('field.neutral'); return undefined;
+	// sets field value
+	Field.prototype.set = function(val){
+		switch(this.type) {
+
+			case 'text' :
+			case 'textarea' :
+				this.$e.val(val);
+				break;
+
+			case 'select' :
+				if (this.$e.find('option[value="'+val+'"]').length > 0) {
+					this.$e.val(val);
+				}
+				break;
+
+			case 'checkbox' :
+				switch(true) {
+					case true  === val : this.$e.prop('checked', true);  break;
+					case false === val : this.$e.prop('checked', false); break;
+					default            : this.$e.val(val);               break;
+				}
+				break;
+
+			case 'radio' :
+				// TODO implement me
+				break;
 		}
 	};
 
-	Field.prototype = $.extend({}, Observable.prototype, Validatable.prototype, Field.prototype);
+	Field.prototype = $.extend({}, Validatable.prototype, Field.prototype);
 
-	// Group -----------------------------------------------------------------------------------------------------------
+	//
+	// Group class - represents form-group
+	//
 
-	var Group = function($group, form){
+	var Group = function($e, form){
 		var self = this;
-		this._construct($group, form);
-		this._children('input.validatable, select.validatable, textarea.validatable', function($field){
-			return new Field($field, self);
-		}, function(type, field, event){
-			switch(type){
-				case 'field.change' :
-				case 'field.blur' :
-					self.validate();
-					break;
-			}
-		});
-		this.validator = GroupValidator;
-		this.trigger('group.ready');
+		validatable.init.call(this, $e, {form: form});
+		this.options.required = true;
+		this.fields = validatable.children.call(this, '.field-validatable', function($e){return new Field($e, self)});
+		this.validator = validator.group;
+		this.on = {
+			fieldChange : function(event, field){ self.options.validateOn.change && self.validate() },
+			fieldBlur   : function(event, field){ self.options.validateOn.blur   && self.validate() },
+			valid       : function(event){self.valid()},
+			invalid     : function(event){self.invalid()},
+			neutral     : function(event){self.reset()}
+		};
+		this.event('ready');
 	};
 
+	// removes group validation states
 	Group.prototype.reset = function(){
-		this.options.debug && console.debug(this.id, 'Group.reset');
-		this.$element.removeClass(this.options.className.valid).removeClass(this.options.className.invalid);
+		this.$e.removeClass(this.options.className.valid).removeClass(this.options.className.invalid);
 	};
 
-	Group.prototype.invalid = function(){
-		this.options.debug && console.debug(this.id, 'Group.invalid');
-		this.reset();
-		this.$element.addClass(this.options.className.invalid);
-	};
-
+	// sets group validation state to 'valid'
 	Group.prototype.valid = function(){
-		this.options.debug && console.debug(this.id, 'Group.valid');
 		this.reset();
-		this.$element.addClass(this.options.className.valid);
+		this.$e.addClass(this.options.className.valid);
+	};
+
+	// sets group validation state to 'invalid'
+	Group.prototype.invalid = function(){
+		this.reset();
+		this.$e.addClass(this.options.className.invalid);
 	};
 
 	Group.prototype.val = function(){
-		this.options.debug && console.debug(this.id, 'Group.val');
-		for(var id in this.children) {
-			if (!this.children.hasOwnProperty(id)) continue;
-			if (this.children[id].validate() !== false) {
-				var val = this.children[id].val();
-				this.options.debug && console.debug(this.id, 'Group.val', id, 'valid', val);
-				return val;
-			} else {
-				this.options.debug && console.debug(this.id, 'Group.val', id, 'invalid');
+		var id;
+		for(id in this.fields) {
+			if (!this.fields.hasOwnProperty(id)) continue;
+			if (this.fields[id].validate() !== false) {
+				return this.fields[id].val();
 			}
 		}
-		return undefined;
+		return null;
 	};
 
-	Group.prototype.countValid = function(){
-		var count = 0;
-		for(var id in this.children) {
-			if (!this.children.hasOwnProperty(id)) continue;
-			if (this.children[id].validate() !== false) count++;
+	// return number of valid child fields
+	Group.prototype.count = function(){
+		var count, id;
+		count = 0;
+		for(id in this.fields) {
+			if (!this.fields.hasOwnProperty(id)) continue;
+			if (this.fields[id].validate() !== false) count++;
 		}
-		this.options.debug && console.debug(this.id, 'Group.countValid', count);
 		return count;
 	};
 
-	Group.prototype.validate = function() {
-		this.options.debug && console.debug(this.id, 'Group.validate');
-		var status = Validatable.prototype.validate.call(this);
-		switch(true){
-			case  true === status : false === this.trigger('group.valid')   || this.valid();   return true;
-			case false === status : false === this.trigger('group.invalid') || this.invalid(); return false;
-			default               : false === this.trigger('group.neutral') || this.reset();   return undefined;
-		}
-	};
+	Group.prototype = $.extend({}, Validatable.prototype, Group.prototype);
 
-	Group.prototype = $.extend({}, Observable.prototype, Validatable.prototype, Group.prototype);
+	//
+	// Form class
+	//
 
-	// Form ------------------------------------------------------------------------------------------------------------
-
-	var Form = function($form){
+	var Form = function($e){
 		var self = this;
-		this._construct($form);
-		this._children('div.form-group.validatable', function($group){
-			return new Group($group, self);
-		}, function(type, group, event){
-			//
-			//
-			//
-		});
-		this.validator = FormValidator;
+		validatable.init.call(this, $e);
+		this.options.required = true;
+		this.groups = validatable.children.call(this, '.group-validatable', function($e){return new Group($e, self)});
+		this.validator = validator.form;
+		this.helper = helper;
+		this.helper.form = this;
+		this.on = {
 
-		this.options.bind && this.options.bind.submit && this.$element.bind('submit', function(event){
-			self.options.debug && console.debug(self.id, 'Form.submit');
-			if (false === self.trigger('form.submit', event)) return false;
-			try {
-				var isValid = self.validate();
-				self.options.debug && console.debug(self.id, 'Form.submit', 'isValid', isValid);
-			} catch(error){
-				console.error(error);
-			}
-			if (isValid){
-				if (false === self.trigger('form.valid', event)) return false;
-			} else {
-				if (false === self.trigger('form.invalid', event)) return false;
-				event.preventDefault();
-			}
-			return true;
-		});
+			submit: function(event){
+				var valid;
+				self.options.validateOn.submit && (valid = self.validate());
+				if (false === valid) {
+					event.preventDefault();
+				}
+			},
 
-		this.trigger('form.ready');
+			invalid: function(event){
+				helper.scrollToFirstInvalidGroup().focusFirstInvalidField();
+			}
+
+		};
+		this.$e.bind('submit', function(event){self.event('submit', event)});
+		this.event('ready');
 	};
 
-	Form.prototype = $.extend({}, Observable.prototype, Validatable.prototype, Form.prototype);
+	Form.prototype = $.extend({}, Validatable.prototype, Form.prototype);
 
 })(jQuery, window);

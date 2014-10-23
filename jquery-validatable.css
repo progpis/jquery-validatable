@@ -1,61 +1,36 @@
-/* hide status icons and status messages by default */
+/* VERSION 0.3.6 */
 
-form.validatable div.form-group.validatable i.has-success.validatable,
-form.validatable div.form-group.validatable i.has-error.validatable,
-form.validatable div.form-group.validatable span.help-block.has-success.validatable,
-form.validatable div.form-group.validatable span.help-block.has-error.validatable
+.icon-validatable.has-success,
+.icon-validatable.has-error,
+.help-block-validatable.has-success,
+.help-block-validatable.has-error
 {
 	display: none;
 }
 
-/* show appropriate status icon */
-
-form.validatable div.form-group.has-success.validatable i.has-success.validatable
-{
-	display: inline;
-}
-
-form.validatable div.form-group.has-error.validatable i.has-error.validatable
-{
-	display: inline;
-}
-
-/* hide default help message on success */
-
-form.validatable div.form-group.has-success.validatable span.help-block.help-block.validatable
+.group-validatable.has-success .help-block-validatable
 {
 	display: none;
 }
 
-/* show appropriate status message */
+.group-validatable.has-success .icon-validatable.has-success,
+.group-validatable.has-error .icon-validatable.has-error
+{
+	display: inline;
+}
 
-form.validatable div.form-group.has-success.validatable span.help-block.has-success.validatable
+.group-validatable.has-success .help-block-validatable.has-success,
+.group-validatable.has-error .help-block-validatable.has-error
 {
 	display: block;
 }
 
-form.validatable div.form-group.has-error.validatable span.help-block.has-error.validatable
-{
-	display: block;
-}
-
-/***/
-
-form.validatable div.select-inline
-{
-	display: inline-block;
-	vertical-align: middle;
-}
-
-form.validatable input.validatable-datepicker
+.datepicker-validatable
 {
 	cursor: pointer;
 }
 
-@media (min-width:992px)
-{
-	form.form-default.validatable div.form-group.checkbox.validatable
-	{
-		padding-top: 25px;
-	}
+.inline-select-validatable {
+	display: inline-block;
+	vertical-align: middle;
 }
