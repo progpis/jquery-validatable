@@ -1,6 +1,6 @@
 (function($, window) {
 
-	var VERSION = '0.3.6';
+	var VERSION = '0.3.7';
 
 	$.fn.validatable = function(opts, els){
 		options = $.extend(true, {}, defaults, opts || {});
@@ -293,11 +293,22 @@
 		this.type = validatable.type.call(this);
 		this.validator = validator.field;
 		this.on = {
-			change : function(event){self.group.on.fieldChange(event, self)},
-			blur   : function(event){self.group.on.fieldBlur(event, self)}
+			change   : function(event){
+				self.group.on.fieldChange(event, self);
+			},
+			blur     : function(event){
+				self.group.on.fieldBlur(event, self);
+			},
+			keypress : function(event){
+				self.options.filter
+					&& -1 === [0, 8].indexOf(event.which)
+					&& !self.options.filter.test(String.fromCharCode(event.which))
+				&& event.preventDefault();
+			}
 		};
-		this.$e.bind('change', function(event){self.event('change', event)});
-		this.$e.bind('blur',   function(event){self.event('blur',   event)});
+		this.$e.bind('change',   function(event){self.event('change',   event)});
+		this.$e.bind('blur',     function(event){self.event('blur',     event)});
+		this.$e.bind('keypress', function(event){self.event('keypress', event)});
 		this.event('ready');
 	};
 
